@@ -1,17 +1,5 @@
 #include "mysqlConnector.h"
 
-Sheet::Sheet(vector<string> colNames, vector<MYSQL_ROW> rows, int length)
-{
-	this->colNames = colNames;
-	this->rows = rows;
-	this->length = length;
-}
-
-Sheet::~Sheet()
-{
-	delete this;
-}
-
 /*
 config = {
 	host : ip
@@ -34,6 +22,7 @@ MYSQLConnector::~MYSQLConnector()
 	mysql_close(this->mysql);
 }
 
+/* An old version of select strategy, for reference only
 Sheet* MYSQLConnector::select(const char* sql)
 {
 	if (mysql_query(this->mysql, sql))
@@ -59,31 +48,26 @@ Sheet* MYSQLConnector::select(const char* sql)
 	mysql_free_result(res);
 	return result;
 }
+*/
 
-void MYSQLConnector::printRows(Sheet* table)
+Json MYSQLConnector::select(const char* sql)
 {
-	//print the header of table
-	for (int i = 0; i < table->colNames.size(); ++i)
-		cout << table->colNames[i] << "\t";
-	printf("\n");
-
-	if (table->length < 20)
+	Json result = {};
+	string data = "";
+	if (mysql_query(this->mysql, sql))
 	{
-		for (MYSQL_ROW row : table->rows)
-		{
-			for (int i = 0; i < table->length; ++i)
-				cout << row[i] << "\t";
-			printf("\n");
-		}
+		cerr << "ERR:" << "mysql query failed" << endl;
+		return result;
 	}
-	else {
-		for (MYSQL_ROW row : table->rows)
-		{
-			for (int i = 0; i < 20; ++i)
-				cout << row[i] << "\t";
-			printf("\n");
-		}
-	}
+
+	MYSQL_RES* res = mysql_store_result(this->mysql);
+	MYSQL_ROW row;
+
+	while ((row = mysql_fetch_row(res)) != NULL)
+		result.push_back(Json::parse(row[0]));
+
+	mysql_free_result(res);
+	return result;
 }
 
 bool MYSQLConnector::exec(const char* sql)
